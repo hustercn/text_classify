@@ -1,0 +1,205 @@
+syntax = "proto3";
+
+option java_package = "com.abcft.algorithm.grpc";
+
+import public "google/protobuf/empty.proto";
+import public "google/protobuf/any.proto";
+
+// Algorithm RPC service
+service AlgorithmService {
+    // Ping the server
+    rpc Ping (google.protobuf.Empty) returns (PingReply) {}
+    // Retrieve the version of the RPC service and algorithms
+    rpc GetVersion (google.protobuf.Empty) returns (VersionReply) {}
+
+    // Classify specified image
+    rpc ImageClassify (ImageRequest) returns (RpcReply) {}
+    // Parse and extract table from specified image
+    rpc ImagePasreTable (ImageRequest) returns (RpcReply) {}
+    // Parse and extract chart from specified image
+    rpc ImageParseChart (ImageRequest) returns (RpcReply) {}
+    // Classify and parse specified image
+    rpc ImageClassifyParse (ImageRequest) returns (RpcReply) {}
+
+    // Parse specified PDF in streaming mode
+    rpc PdfParseSteaming (PdfRequest) returns (stream RpcReply) {}
+    // Parse specified PDF in sychronous mode
+    rpc PdfParse (PdfRequest) returns (RpcReply) {}
+    // Split specified PDF into multiple ones
+    rpc PdfSplit (PdfSplitRequest) returns (stream RpcReply) {}
+    // Split specified PDF into multiple ones
+    rpc PdfCleanup (PdfCleanupRequest) returns (stream RpcReply) {}
+
+    rpc detectElement(OcrRequest) returns (ElementReply) {}         // 检测一张大图里面所有的对象, 包括文字, 图例, 坐标轴等
+    rpc predictText(OcrRequest) returns (TextReply) {} 	            // 识别一张图片里面的文字
+    rpc batchPredictText(BatchOcrRequest) returns (TextReply) {} 	// 识别一组图片里面的文字
+
+}
+
+
+// A request to parser an Image
+message ImageRequest {
+    oneof image {
+        bytes data = 1;                 // Binary data of the image file
+        string url = 2;                 // URL of the image
+    }
+    map<string, string> params = 3;     // Extract paramters.
+}
+
+// Type to extract or type of the result
+enum Type {
+    NONE = 0;              // Extract nothing / error occured
+    TEXT = 0x01;           // Extract text / result is a text
+    CHART = 0x02;          // Extract chart / result is a chart
+    TABLE = 0x04;          // Extract table / result is a table
+    DEFAULT = 0x07;        // Extract chart, table and text from a PDF.
+    BITMAP_CHART = 0x08;   // Extract bitmap chart / result is a bitmap chart
+    BITMAP_TABLE = 0x10;   // Extract bitmap table / result is a bitmap table
+    BITMAP_DEFAULT = 0x18; // Extract bitmaps for bitmap or PDF
+    ALL = 0x1F;            // Extract chart, table, text and bitmaps from a PDF
+
+
+    BINARY = 0x20000000;   // - / result is binary data
+    SEE_DATA = 0x40000000; // - / result is null, see data field
+}
+
+// A request to parser a PDF
+message PdfRequest {
+    oneof pdf {
+        bytes data = 1;                 // Binary data of the PDF file
+        string url = 2;                 // URL of the PDF
+    }
+    int32 type = 3;                     // Item types to extract, bitwise-OR of of Type.
+    map<string, string> params = 4;     // Extract paramters.
+    string filename = 5;                // (Optional) Name of the PDF, useful for diagnotics.
+}
+
+// Represents an interval
+message Interval {
+    enum Inclusivity {
+        Closed = 0;
+        LeftOpen = 1;
+        RightOpen = 2;
+        Open = 3;
+    }
+    int32 min = 1;                  // Min value of the interval
+    int32 max = 2;                  // Max value of the interval
+    Inclusivity inclusivity = 3;    // inclusivity of the interval
+}
+
+// Segement: single or interval
+message Segment {
+    oneof Item {
+        Interval interval = 1;      // A page interval to split
+        int32 page = 2;             // The page number (1-based) to split
+    }
+}
+
+message PdfSplitRequest {
+    PdfRequest pdf = 1;
+    repeated Segment segments = 2;  // Segements to split. Empty segment indicates split every page.
+}
+
+// Params helps to remove watermarks.
+message WatermarkParams {
+    bool enabled = 1;                   // True to enable watermark removal
+    repeated bytes features = 2;        // List of features of the watermark removal
+}
+
+// Params indicates what to cleanup
+message CleanupParams {
+    WatermarkParams watermark = 1;
+}
+
+message PdfCleanupRequest {
+    PdfRequest pdf = 1;
+    CleanupParams params = 2;
+}
+
+// Reply for splited PDF
+message PdfContent {
+    int32 index = 1;                    // The index of the splited PDF
+    Segment segment = 2;                // The (normalized) segement of the split
+    bytes data = 3;                     // The data buffer of this segement
+    bool eos = 4;                       // True to indicates splited PDF had finished transfer
+}
+
+
+// General RPC reply message
+message RpcReply {
+    bool ok = 1;
+    bytes result = 2;
+    Type type = 3;
+    int32 code = 4;
+    string msg = 5;
+    google.protobuf.Any data = 6;
+}
+
+// Reply of ping
+message PingReply {
+    int64 timestamp = 1;                // Server Unix timstamp in milis.
+}
+
+// Reply of versions
+message VersionReply {
+    string version = 1;                 // Version of the JAR. <project version>-<build time>-<revision>-<builder>
+    int32 chart_version = 2;            // Version of chart extraction algorithm.
+    int32 table_version = 3;            // Version of table extraction algorithm.
+    int32 text_version = 4;             // Version of fulltext extraction algorithm.
+    int32 bitmap_chart_version = 5;     // Version of bitmap chart parse algorithm.
+    int32 bitmap_table_version = 6;     // Version of bitmap table parse algorithm.
+    int32 classify_version = 7;         // Version of image classify model.
+    int32 ocr_version = 8;              // Version of ocr model.
+}
+
+
+message RpcStatus {
+    bool success = 1; // 调用是否成功
+    int32 error_code = 2; // 错误码
+    string error_msg = 3; // 错误描述
+}
+
+message OcrRequest {
+    oneof image {
+        bytes data = 1; // 图片编码好的字节
+        string url = 2; // 图片的url
+    }
+    map<string, string> params = 3; // 额外的参数
+    string image_name = 4;          // 图片名称(可选)
+}
+
+message BatchOcrRequest {
+    repeated OcrRequest images = 1;
+}
+
+message TextReply {
+    RpcStatus status = 1;
+    repeated string texts = 2;
+}
+
+message Box {
+    int32 center_x = 1; // 中心x
+    int32 center_y = 2; // 中心y
+    int32 width = 3; // 宽度
+    int32 height = 4; // 高度
+    int32 rotate = 5; // 旋转角度, 顺时针为正, 逆时针为负, 单位角度
+}
+
+message Element {
+    enum ElementType {
+        UNKNOWN = 0; //未知类型
+        TEXT = 1; //文字
+        LEGEND_TEXT = 2; //图例的文字
+        LEGEND = 3; // 图例的图形
+        HAXIS = 4; // 水平坐标轴
+        VAXIS = 5; // 竖直坐标轴
+    }
+    ElementType type = 1;
+    Box bbox = 2;
+    string text = 3;
+}
+
+message ElementReply {
+    RpcStatus status = 1;
+    repeated Element elements = 2;
+}

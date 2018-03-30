@@ -1,0 +1,68 @@
+syntax = "proto3";
+
+package com.abcft.pdfextract.rpc.ocr;
+
+service OcrService {
+    rpc detectElement(OcrRequest) returns (ElementReply) {}         // 检测一张大图里面所有的对象, 包括文字, 图例, 坐标轴等
+    rpc predictText(OcrRequest) returns (TextReply) {} 	            // 识别一张图片里面的文字
+    rpc batchPredictText(BatchOcrRequest) returns (TextReply) {} 	// 识别一组图片里面的文字
+}
+
+message RpcStatus {
+    bool success = 1; // 调用是否成功
+    int32 error_code = 2; // 错误码
+    string error_msg = 3; // 错误描述
+}
+
+message OcrRequest {
+    oneof image {
+        bytes data = 1; // 图片编码好的字节
+        string url = 2; // 图片的url
+    }
+    map<string, string> params = 3; // 额外的参数
+    string image_name = 4;          // 图片名称(可选)
+    bool need_denoise = 5;
+    bool need_denoise_image = 6;
+    bool need_parse_title = 7;
+}
+
+message BatchOcrRequest {
+    repeated OcrRequest images = 1;
+}
+
+message TextReply {
+    RpcStatus status = 1;
+    repeated string texts = 2;
+}
+
+message Box {
+    int32 center_x = 1; // 中心x
+    int32 center_y = 2; // 中心y
+    int32 width = 3; // 宽度
+    int32 height = 4; // 高度
+    int32 rotate = 5; // 旋转角度, 顺时针为正, 逆时针为负, 单位角度
+}
+
+message Element {
+    enum ElementType {
+        UNKNOWN = 0; //未知类型
+        TEXT = 1; //文字
+        LEGEND_TEXT = 2; //图例的文字
+        LEGEND = 3; // 图例的图形
+        HAXIS = 4; // 水平坐标轴
+        VAXIS = 5; // 竖直坐标轴
+        COLUMN = 6; // 垂直柱状
+        BAR = 7; // 水平柱状
+        TITLE = 8;
+        FRONT_TEXTS = 9;
+    }
+    ElementType type = 1;
+    Box bbox = 2;
+    string text = 3;
+}
+
+message ElementReply {
+    RpcStatus status = 1;
+    repeated Element elements = 2;
+    bytes image = 3;
+}

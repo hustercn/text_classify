@@ -1,0 +1,38 @@
+{
+  "vocabulary_path":{
+    "name": "abcChinese_ve3c430dc.txt",
+    "hash": "e3c430dc4b16a790ac687d2c8fa9ae2d"
+  },
+  "model": {
+    "name": "svm_c23v6d6c1568.pkl",
+    "hash": "6d6c1568af14371007a8347b47868c05"
+  },
+  "all_features": {
+    "name": "all_features_v6cfe2767.pkl",
+    "hash": "6cfe276738e2220a66d982e5a2a113fe"
+  },
+  "selected_features": {
+    "name": "features_index_v45b4dc6b.npy",
+    "hash": "45b4dc6b78b3010bcdf7918e3743005e"
+  },
+  "model_in": {
+    "name": "svm_c104vdbb90322.pkl",
+    "hash": "dbb90322ccc9ae02ea92874be1c820fc"
+  },
+  "all_features_in": {
+    "name": "all_features_va55a8f32.pkl",
+    "hash": "a55a8f3233a67868970fa6f58f19be4c"
+  },
+  "selected_features_in": {
+    "name": "features_index_vb998eee7.npy",
+    "hash": "b998eee7e0498193e7d6b797bbc34157"
+  },
+  "cnn_model": {
+    "name": "title_classify_v35b1e4a2.pb",
+    "hash": "35b1e4a2215346ee85eedc2c32a1c314"
+  },
+  "cnn_vocabulary": {
+    "name": "cnn_vocabulary_v09b10736.pkl",
+    "hash": "09b107362b30811de9c686e6cdf198e9"
+  }
+}

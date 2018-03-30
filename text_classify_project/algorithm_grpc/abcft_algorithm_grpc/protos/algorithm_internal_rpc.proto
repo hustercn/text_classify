@@ -1,0 +1,287 @@
+syntax = "proto3";
+
+package com.abcft.algorithm.grpc.internal;
+
+import public "google/protobuf/empty.proto";
+import public "google/protobuf/any.proto";
+
+// Algorithm Internal RPC service
+service AlgorithmInternalService {
+    // Ping the server
+    rpc Ping (google.protobuf.Empty) returns (PingReply) {}
+    // Retrieve the version of algorithms
+    rpc GetVersions (google.protobuf.Empty) returns (VersionsReply) {}
+    // Retrieve the methods of the service
+    rpc ListMethods (google.protobuf.Empty) returns (MethodsReply) {}
+
+    rpc Request (RpcRequest) returns (stream RpcReply) {}
+
+    rpc ImageDetect (ImageDetectRequest) returns (stream ImageDetectReply) {}
+    rpc ImageClassify (ImageClassifyRequest) returns (stream ImageClassifyReply) {}
+    rpc ImageClassifyBatch (stream ImageClassifyRequest) returns (stream ImageClassifyReply) {}
+    rpc TitleClassify (TitleClassifyRequest) returns (stream TitleClassifyReply) {}
+
+    rpc BitmapTableParse (BitmapTableRequest) returns (stream BitmapTableReply) {}
+    // for scan images
+    rpc BitmapTableParseBatch (BitmapTableRequest) returns (stream BitmapTableReply) {}
+
+    rpc BitmapChartParse (BitmapChartRequest) returns (stream BitmapChartReply) {}
+
+    rpc TesseractDetectText (TesseractRequest) returns (stream TesseractReply) {}
+
+    rpc ChartDetect (ChartDetectRequest) returns (stream ChartDetectReply) {}
+
+    rpc TextClassify (TextClassifyRequest) returns (stream TextClassifyReply) {}
+
+    rpc Allennlp (AllennlpRequest) returns (stream AllennlpReply){}
+}
+
+
+// Reply of ping
+message PingReply {
+    int64 timestamp = 1;                // Server Unix timstamp in milis.
+}
+
+message VersionInfo {
+    string name = 1;
+    string version = 2;
+    int32 version_major = 3;
+    int32 version_minor = 4;
+    int32 version_patch = 5;
+}
+
+// Reply of versions
+message VersionsReply {
+    repeated VersionInfo versions = 1;
+}
+
+
+message MethodInfo {
+    string name = 1;
+    string desc = 2;
+}
+
+// Reply of methods
+message MethodsReply {
+    repeated MethodInfo methods = 1;
+}
+
+
+// RPC Request
+message RpcRequest {
+    string method = 1;
+    // for pdf or image data, use binary data or url
+    oneof file {
+        bytes data = 2;
+        string url = 3;
+    }
+    // params, should be json string
+    string params = 4;
+    // version of method
+    int32 version = 5;
+}
+
+// RPC Reply
+message RpcReply {
+    bool ok = 1;
+    // params, should be empty or binary json data
+    bytes result = 2;
+    // reply code
+    int32 code = 3;
+    // reply message
+    string msg = 4;
+    // params, should be json string
+    string extra = 5;
+}
+
+
+
+enum ImageType {
+    IMAGE_OTHER = 0;
+    IMAGE_LINE_CHART = 1;
+    IMAGE_AREA_CHART = 2;
+    IMAGE_BAR_CHART = 3;
+    IMAGE_COLUMN_CHART = 4;
+    IMAGE_PIE_CHART = 5;
+    IMAGE_COMBO_CHART = 6;
+    IMAGE_GRID_TABLE = 7;
+    IMAGE_LINE_TABLE = 8;
+    IMAGE_QR_CODE = 9;
+    IMAGE_INFO_GRAPH = 10;
+    IMAGE_TEXT = 11;
+    IMAGE_CANDLESTICK_CHART = 12;
+    IMAGE_OTHER_MEANINGFUL = 13;
+    IMAGE_PHOTOS = 14;
+    IMAGE_SCATTER_CHART = 15;
+    IMAGE_RADAR_CHART = 16;
+    IMAGE_DONUT_CHART = 17;
+    IMAGE_LINE_POINT_CHART = 18;
+    IMAGE_DISCRETE_PLOT = 19;
+}
+
+// ImageDetect Request
+message ImageDetectRequest {
+    oneof file {
+        bytes data = 1;
+        string url = 2;
+    }
+}
+// ImageDetect Reply
+message ImageDetectReply {
+    bool ok = 1;
+    int32 code = 2;
+    string msg = 3;
+
+    ImageType type = 4;
+    float score = 5;
+    repeated float bbox = 6;  // minX, minY, maxX, maxY
+}
+
+// ImageClassify Request
+message ImageClassifyRequest {
+    oneof file {
+        bytes data = 1;
+        string url = 2;
+    }
+    string id = 3;
+}
+// ImageClassify Reply
+message ImageClassifyReply {
+    bool ok = 1;
+    int32 code = 2;
+    string msg = 3;
+
+    ImageType type = 4;
+    float score = 5;
+
+    string id = 6;
+    message ClassifyResult{
+        ImageType type = 1;
+        float score = 2;
+    };
+    repeated ClassifyResult result= 7;
+}
+
+// TitleClassify Request
+message TitleClassifyRequest {
+    string category = 1;
+    string first_class = 2;
+    string text = 3;
+    string title = 4;
+}
+// TitleClassify Reply
+message TitleClassifyReply {
+    bool ok = 1;
+    int32 code = 2;
+    string msg = 3;
+
+    string classify_code = 4;
+    string classify_class1 = 5;
+    string classify_class2 = 6;
+    string classify_class3 = 7;
+}
+
+
+// BitmapTable Request
+message BitmapTableRequest {
+    oneof file {
+        bytes data = 1;
+        string url = 2;
+    }
+    int32 table_type = 3;
+    bool use_ocr = 4;
+    string format = 5;
+    string ocr_engine = 6;
+    int32 options = 7;
+}
+// BitmapTable Reply
+message BitmapTableReply {
+    bool ok = 1;
+    int32 code = 2;
+    string msg = 3;
+
+    string parsed = 4;  // parsed data, json format or xml, html
+    repeated float bbox = 5;  // minX, minY, maxX, maxY;
+}
+
+
+// BitmapChart Request
+message BitmapChartRequest {
+    oneof file {
+        bytes data = 1;
+        string url = 2;
+    }
+    repeated int32 chart_types = 3;
+}
+// BitmapChart Reply
+message BitmapChartReply {
+    bool ok = 1;
+    int32 code = 2;
+    string msg = 3;
+
+    string parsed = 4;  // parsed data, json string
+}
+
+
+// Tesseract Request
+message TesseractRequest {
+    oneof file {
+        bytes data = 1;
+        string url = 2;
+    }
+}
+// Tesseract Reply
+message TesseractReply {
+    bool ok = 1;
+    int32 code = 2;
+    string msg = 3;
+
+    string text = 4;
+    int32 type = 5;
+    repeated float bbox = 6;  // minX, minY, maxX, maxY
+}
+
+// ImageChartDetect Request
+message ChartDetectRequest {
+    oneof file {
+        bytes data = 1;
+        string url = 2;
+    }
+}
+
+// ImageChartDetect Reply
+message ChartDetectReply {
+    bool ok = 1;
+    int32 code = 2;
+    string msg = 3;
+    int32 type = 4;
+    float score = 5;
+    repeated float bbox = 6;  // minX, minY, maxX, maxY
+}
+
+
+// TextClassify Request
+message TextClassifyRequest {
+    string fulltext = 1;
+}
+// TextClassify Reply
+message TextClassifyReply {
+    bool ok = 1;
+    int32 code = 2;
+    string msg = 3;
+
+    string language = 4;
+    string type = 5;
+}
+
+message AllennlpRequest {
+    string passage = 1;
+    string question = 2;
+}
+
+message AllennlpReply {
+    bool ok = 1;
+    int32 code = 2;
+    string msg = 3;
+    string result = 4;
+}
